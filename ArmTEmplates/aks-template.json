@@ -1,0 +1,73 @@
+{
+    "$schema": "https://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#",
+    "contentVersion": "1.0.0.0",
+    "parameters": {
+        "clusterName": {
+            "type": "string"
+        },
+        "dnsPrefix": {
+            "type": "string"
+        },
+        "clusterLocation": {
+            "type": "string",
+            "defaultValue": "[resourceGroup().location]"
+        },
+        "agentCount": {
+            "defaultValue": 3,
+            "type": "int"
+        },
+        "agentVMSize": {
+            "defaultValue": "Standard_D2_v2",
+            "type": "string"
+        },
+        "kubernetesVersion": {
+            "type": "string"
+        },
+        "clusterTags": {
+            "type": "object",
+            "defaultValue": {}
+        },
+        "httpApplicationRoutingEnabled": {
+            "type": "bool"
+        }
+    },
+    "variables": {
+        "clusterId": "[concat('Microsoft.ContainerService/managedClusters/',parameters('clusterName'))]"
+    },
+    "resources": [
+        {
+            "apiVersion": "2020-03-01",
+            "type": "Microsoft.ContainerService/managedClusters",
+            "location": "[parameters('clusterLocation')]",
+            "name": "[parameters('clusterName')]",
+            "tags": "[parameters('clusterTags')]",
+            "dependsOn": [
+            ],
+            "properties": {
+                "dnsPrefix": "[parameters('dnsPrefix')]",
+                "kubernetesVersion": "[parameters('kubernetesVersion')]",
+                "addonProfiles": {
+                    "httpApplicationRouting": {
+                        "enabled": "[parameters('httpApplicationRoutingEnabled')]"
+                    }
+                },
+                "agentPoolProfiles": [
+                    {
+                        "name": "agentpool",
+                        "count": "[parameters('agentCount')]",
+                        "vmSize": "[parameters('agentVMSize')]"
+                    }
+                ]
+            },
+            "identity": {
+                "type": "SystemAssigned"
+            }
+        }
+    ],
+    "outputs": {
+        "applicationRoutingZone": {
+            "value": "[if(parameters('httpApplicationRoutingEnabled'), reference(variables('clusterId')).addonProfiles.httpApplicationRouting.config.HTTPApplicationRoutingZoneName, '')]",
+            "type": "string"
+        }
+    }
+}
